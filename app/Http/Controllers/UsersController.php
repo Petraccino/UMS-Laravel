@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UsersController extends Controller
 {
@@ -27,7 +28,6 @@ class UsersController extends Controller
             $res['success'] = false;
         }
         return $res;
-       
     }
 
     /**
@@ -43,7 +43,26 @@ class UsersController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $res = [
+            'body' => null,
+            'message' => null,
+            'success' => null
+        ];
+        try {
+            $userData = $request->except((['id']));
+            $userData['password'] = $userData['password'] ?? 'password';
+            $userData['password'] = Hash::make($userData['password']);
+            $user = new User();
+            $user->fill($userData);
+            $user->save();
+            $res['body'] = $user;
+            $res['message'] = 'SUCCESS';
+            $res['success'] = true;
+        } catch (Exception $e) {
+            $res['message'] = $e->getMessage();
+            $res['success'] = false;
+        }
+        return $res;
     }
 
     /**
@@ -78,7 +97,7 @@ class UsersController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, int $user)
     {
         $data = $request->except(['id']);
         $res = [
@@ -88,7 +107,9 @@ class UsersController extends Controller
         ];
 
         try {
+            $data['password'] = 'password';
             $User = User::findOrFail($user);
+            $data['password'] = Hash::make($data['password']);
             $User->update($data);
             $res['body'] = $User;
             $res['message'] = 'SUCCESS';
@@ -98,14 +119,41 @@ class UsersController extends Controller
             $res['success'] = false;
         }
         return $res;
-
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(User $user)
+    public function destroy($id)
     {
-        //
+
+        $res = [
+            'body' => null,
+            'message' => null,
+            'success' => null
+        ];
+        try {
+            $user = User::find($id);
+
+            if (!$user) {
+                $res['message'] = 'User not found';
+                $res['success'] = false;
+            } else {
+                $result = $user->delete();
+
+                if ($result) {
+                    $res['body'] = $user;
+                    $res['message'] = 'SUCCESS';
+                    $res['success'] = true;
+                } else {
+                    $res['message'] = 'Could not delete user';
+                    $res['success'] = false;
+                }
+            }
+        } catch (\Exception $e) {
+            $res['message'] = $e->getMessage();
+            $res['success'] = false;
+        }
+        return $res;
     }
 }
