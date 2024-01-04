@@ -18,6 +18,6 @@ Route::get('/', function () {
     return ['Laravel' => app()->version()];
 });
 
-Route::resource('users', UsersController::class);
+//Route::resource('users', UsersController::class);
 
 require __DIR__.'/auth.php';
