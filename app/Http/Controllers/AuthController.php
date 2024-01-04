@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use Exception;
+use Illuminate\Http\JsonResponse;
+
 class AuthController extends Controller
 {
     /**
@@ -11,7 +15,7 @@ class AuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login']]);
+        $this->middleware('auth:api', ['except' => ['login', 'signup']]);
     }
 
     /**
@@ -19,15 +23,32 @@ class AuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login()
+    public function login(): JsonResponse
     {
         $credentials = request(['email', 'password']);
-       
+
         if (!$token = auth()->attempt($credentials)) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
         return $this->respondWithToken($token);
+    }
+
+    public function signup(): JsonResponse
+    {
+        $credentials = request(['email', 'password', 'name', 'lastname', 'fiscalcode', 'province', 'phone', 'age']);
+        try {
+            $user = User::create($credentials);
+            if (!$user) {
+                return response()->json(['error' => 'error crating user'], 500);
+            }
+            if (!$token = auth()->login($user)) {
+                return response()->response()->json(['error' => 'Unauthorized'], 401);
+            }
+            return $this->respondWithToken($token);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'error crating user: ' . $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -75,8 +96,8 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => auth()->factory()->getTTL() * 60,
-            'name' => auth() -> user() -> name,
-            'email' => auth() -> user() -> email
+            'name' => auth()->user()->name,
+            'email' => auth()->user()->email
 
         ]);
     }
